@@ -36,6 +36,10 @@ frontend/.env.*.local
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
+frontend/.vite/
+frontend/coverage/
+frontend/.eslintcache
+frontend/.stylelintcache
 
 # 后端特定
 backend/node_modules/
@@ -46,8 +50,27 @@ backend/.env.*.local
 backend/npm-debug.log*
 backend/yarn-debug.log*
 backend/yarn-error.log*
+backend/coverage/
+backend/.eslintcache
+backend/.stylelintcache
 
 # 其他
 *.pid
 *.seed
-*.pid.lock 
+*.pid.lock
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+.temp/
+.tmp/
+
+# 测试覆盖率报告
+coverage/
+.nyc_output/
+
+# 包管理器锁定文件（可选，取决于团队策略）
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml 
