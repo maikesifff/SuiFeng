@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+const { Sequelize, DataTypes } = require('sequelize');
 const config = require('../config/config.json')[process.env.NODE_ENV || 'development'];
 
 const sequelize = new Sequelize(
@@ -17,9 +17,20 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-// 在这里导入模型
-// db.User = require('./user')(sequelize, Sequelize);
-// db.Product = require('./product')(sequelize, Sequelize);
-// 等等...
+db.Department = require('./department')(sequelize, DataTypes);
+db.Employee = require('./employee')(sequelize, DataTypes);
+db.User = require('./user')(sequelize, DataTypes);
+db.Warehouse = require('./warehouse')(sequelize, DataTypes);
+db.Supplier = require('./supplier')(sequelize, DataTypes);
+db.Product = require('./product')(sequelize, DataTypes);
+db.Inventory = require('./inventory')(sequelize, DataTypes);
+db.Shipper = require('./shipper')(sequelize, DataTypes);
+db.Vehicle = require('./vehicle')(sequelize, DataTypes);
+db.Order = require('./order')(sequelize, DataTypes);
+db.Delivery = require('./delivery')(sequelize, DataTypes);
+db.Permission = require('./permission')(sequelize, DataTypes);
+db.Role = require('./role')(sequelize, DataTypes);
+db.EmployeeRole = require('./employee_role')(sequelize, DataTypes);
+db.RolePermission = require('./role_permission')(sequelize, DataTypes);
 
 module.exports = db; 
