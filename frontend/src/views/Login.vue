@@ -85,7 +85,8 @@
 </template>
 
 <script>
-import { post } from '../utils/request';
+import { post } from '@/utils/request'
+import { permission } from '@/utils/permission'
 
 export default {
   name: 'LoginView',
@@ -169,6 +170,9 @@ export default {
         } else {
           localStorage.removeItem('rememberedUsername');
         }
+        
+        // 更新权限管理器中的角色信息
+        permission.updateUserRoles(response.user.roles);
         
         // 直接跳转到产品页面
         this.$router.push('/product');
