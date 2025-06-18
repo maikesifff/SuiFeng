@@ -37,5 +37,14 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'employee',
     timestamps: false
   });
+
+  Employee.associate = (models) => {
+    // 与 Department 的关联
+    Employee.belongsTo(models.Department, {
+      foreignKey: 'department_id',
+      as: 'Department'
+    });
+  };
+
   return Employee;
 }; 

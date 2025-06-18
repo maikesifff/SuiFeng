@@ -21,5 +21,14 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'department',
     timestamps: false
   });
+
+  Department.associate = (models) => {
+    // 与 Employee 的关联
+    Department.hasMany(models.Employee, {
+      foreignKey: 'department_id',
+      as: 'Employees'
+    });
+  };
+
   return Department;
 }; 

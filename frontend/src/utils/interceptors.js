@@ -19,7 +19,7 @@ const requestErrorInterceptor = (error) => {
 // 响应拦截器
 const responseInterceptor = (response) => {
   const { data } = response;
-  // 假设后端返回格式为 { code: number, data: any, message: string }
+  // 适配后端返回格式 { code: number, data: any, message: string }
   if (data.code === 200) {
     return data.data;
   }
@@ -36,31 +36,30 @@ const responseInterceptor = (response) => {
 // 响应错误拦截器
 const responseErrorInterceptor = (error) => {
   if (error.response) {
-    const { status } = error.response;
+    const { status, data } = error.response;
     switch (status) {
       case 401:
-        localStorage.removeItem('token');
-        localStorage.removeItem('userInfo');
-        window.location.href = '/login';
-        break;
+        // 只有在非登录页面时才清除登录信息并跳转
+        if (window.location.pathname !== '/login') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userInfo');
+          window.location.href = '/login';
+        }
+        return Promise.reject(new Error('用户名或密码错误'));
       case 403:
-        console.error('权限不足');
-        break;
+        return Promise.reject(new Error('您没有权限执行此操作'));
       case 404:
-        console.error('请求的资源不存在');
-        break;
+        return Promise.reject(new Error('请求的资源不存在'));
       case 500:
-        console.error('服务器错误');
-        break;
+        return Promise.reject(new Error('服务器内部错误，请稍后重试'));
       default:
-        console.error('请求失败');
+        return Promise.reject(new Error(data?.message || '请求失败，请稍后重试'));
     }
   } else if (error.request) {
-    console.error('网络错误，请检查您的网络连接');
+    return Promise.reject(new Error('网络连接失败，请检查您的网络设置'));
   } else {
-    console.error('请求配置错误：', error.message);
+    return Promise.reject(new Error('请求配置错误，请稍后重试'));
   }
-  return Promise.reject(error);
 };
 
 // 设置拦截器

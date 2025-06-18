@@ -33,4 +33,11 @@ db.Role = require('./role')(sequelize, DataTypes);
 db.EmployeeRole = require('./employee_role')(sequelize, DataTypes);
 db.RolePermission = require('./role_permission')(sequelize, DataTypes);
 
+// 初始化模型关联
+Object.keys(db).forEach(modelName => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
+
 module.exports = db; 

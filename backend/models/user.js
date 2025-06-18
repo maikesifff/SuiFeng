@@ -40,5 +40,19 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'user',
     timestamps: false
   });
+
+  User.associate = (models) => {
+    // 与 Employee 的关联
+    User.belongsTo(models.Employee, {
+      foreignKey: 'employee_id',
+      as: 'Employee'
+    });
+  };
+
+  // 添加密码验证方法
+  User.prototype.validatePassword = async function(password) {
+    return this.password === password; // 简单比较，实际应该使用加密
+  };
+
   return User;
 }; 

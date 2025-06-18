@@ -17,6 +17,14 @@ export default {
   components: {
     Header,
     Footer
+  },
+  created() {
+    // 确保未登录时清除token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userInfo');
+    }
   }
 }
 </script>

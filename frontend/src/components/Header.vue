@@ -9,13 +9,61 @@
       <nav class="nav-menu">
         <a href="#" class="nav-link">联系我们</a>
       </nav>
+      <div class="user-info">
+        <template v-if="isLoggedIn && userInfo">
+          <span class="username">{{ userInfo.username }}</span>
+          <el-button type="text" @click="handleLogout">退出</el-button>
+        </template>
+        <template v-else>
+          <el-button type="primary" @click="goToLogin">登录</el-button>
+        </template>
+      </div>
     </div>
   </header>
 </template>
 
 <script>
 export default {
-  name: 'Header'
+  name: 'Header',
+  data() {
+    return {
+      isLoggedIn: false,
+      userInfo: null
+    }
+  },
+  methods: {
+    goToLogin() {
+      this.$router.push('/login');
+    },
+    handleLogout() {
+      // 清除登录信息
+      localStorage.removeItem('token');
+      localStorage.removeItem('userInfo');
+      // 更新状态
+      this.isLoggedIn = false;
+      this.userInfo = null;
+      // 跳转到登录页
+      this.$router.push('/login');
+    },
+    checkLoginStatus() {
+      const token = localStorage.getItem('token');
+      const userInfo = localStorage.getItem('userInfo');
+      this.isLoggedIn = !!token;
+      this.userInfo = userInfo ? JSON.parse(userInfo) : null;
+    }
+  },
+  created() {
+    this.checkLoginStatus();
+  },
+  watch: {
+    // 监听路由变化，更新登录状态
+    '$route': {
+      handler() {
+        this.checkLoginStatus();
+      },
+      immediate: true
+    }
+  }
 }
 </script>
 
@@ -107,5 +155,24 @@ export default {
 .nav-link:hover {
   color: #0070f3;
   background: rgba(0,112,243,0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.username {
+  color: #666;
+  font-size: 14px;
+}
+
+.el-button--text {
+  color: #409EFF;
+}
+
+.el-button--text:hover {
+  color: #66b1ff;
 }
 </style> 

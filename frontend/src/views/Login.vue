@@ -66,7 +66,7 @@
               >
             </div>
             <div class="captcha-box" @click="refreshCaptcha">
-              <div class="captcha-text">点击刷新</div>
+              <div class="captcha-text">{{ captcha.text }}</div>
             </div>
           </div>
         </div>
@@ -85,6 +85,8 @@
 </template>
 
 <script>
+import { post } from '../utils/request';
+
 export default {
   name: 'LoginView',
   
@@ -96,34 +98,101 @@ export default {
         captchaCode: '',
         rememberMe: false
       },
-      loginStatus: null
+      loginStatus: null,
+      captcha: {
+        code: '',
+        text: '点击刷新'
+      }
     }
   },
 
   methods: {
+    // 生成随机验证码
+    generateCaptcha() {
+      const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      let code = '';
+      for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      this.captcha.code = code;
+      this.captcha.text = code;
+    },
+
+    // 刷新验证码
     refreshCaptcha() {
-      console.log('刷新验证码')
+      this.generateCaptcha();
+      this.formData.captchaCode = '';
     },
 
     async handleLogin() {
       try {
-        console.log('登录信息：', this.formData)
-        
-        this.loginStatus = {
-          type: 'success',
-          message: '登录成功，正在跳转...'
+        // 表单验证
+        if (!this.formData.username || !this.formData.password) {
+          this.loginStatus = {
+            type: 'error',
+            message: '请输入用户名和密码'
+          };
+          return;
+        }
+
+        // 验证码验证
+        if (!this.formData.captchaCode) {
+          this.loginStatus = {
+            type: 'error',
+            message: '请输入验证码'
+          };
+          return;
+        }
+
+        if (this.formData.captchaCode.toLowerCase() !== this.captcha.code.toLowerCase()) {
+          this.loginStatus = {
+            type: 'error',
+            message: '验证码错误'
+          };
+          this.refreshCaptcha();
+          return;
+        }
+
+        // 调用登录接口
+        const response = await post('/auth/login', {
+          username: this.formData.username,
+          password: this.formData.password
+        });
+
+        // 保存登录信息
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('userInfo', JSON.stringify(response.user));
+
+        // 记住账号
+        if (this.formData.rememberMe) {
+          localStorage.setItem('rememberedUsername', this.formData.username);
+        } else {
+          localStorage.removeItem('rememberedUsername');
         }
         
-        setTimeout(() => {
-          this.$router.push('/dashboard')
-        }, 1000)
+        // 直接跳转到产品页面
+        this.$router.push('/product');
       } catch (error) {
+        // 显示错误提示
         this.loginStatus = {
           type: 'error',
-          message: error.message || '登录失败，请重试'
-        }
+          message: error.message || '登录失败，请检查用户名和密码'
+        };
+        // 登录失败时刷新验证码
+        this.refreshCaptcha();
       }
     }
+  },
+
+  mounted() {
+    // 检查是否有记住的账号
+    const rememberedUsername = localStorage.getItem('rememberedUsername');
+    if (rememberedUsername) {
+      this.formData.username = rememberedUsername;
+      this.formData.rememberMe = true;
+    }
+    // 生成初始验证码
+    this.generateCaptcha();
   }
 }
 </script>
@@ -391,25 +460,31 @@ export default {
 }
 
 .captcha-box {
-  width: clamp(100px, 20vw, 120px);
-  height: clamp(36px, 7vw, 40px);
+  width: 120px;
+  height: 40px;
   background: #f5f5f5;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.2s;
+  user-select: none;
+  transition: all 0.3s;
 }
 
 .captcha-box:hover {
-  background: rgba(0,112,243,0.1);
+  background: #e6f7ff;
+  border-color: #1890ff;
 }
 
 .captcha-text {
-  font-size: clamp(10px, 1.5vw, 12px);
-  color: #666;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #333;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
 }
 
 .login-button {
@@ -470,20 +545,23 @@ export default {
 }
 
 .status-box {
-  margin-top: clamp(16px, 3vw, 20px);
-  padding: clamp(8px, 2vw, 10px);
+  margin-top: 16px;
+  padding: 12px;
   border-radius: 4px;
   text-align: center;
-  font-size: clamp(12px, 2vw, 14px);
-}
-
-.status-box.success {
-  background: #e6ffed;
-  color: #2ea043;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .status-box.error {
-  background: #ffe6e6;
-  color: #d73a49;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  color: #ff4d4f;
+}
+
+.status-box.success {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
 }
 </style> 

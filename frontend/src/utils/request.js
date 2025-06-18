@@ -3,7 +3,7 @@ import { setupInterceptors } from './interceptors';
 
 // 创建 axios 实例
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api', // 从环境变量获取基础URL
+  baseURL: 'http://localhost:3000/api/v1', // 修改为正确的API前缀
   timeout: 15000, // 请求超时时间，毫秒
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
