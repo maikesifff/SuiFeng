@@ -42,6 +42,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/warehouse',
+    name: 'Warehouse',
+    component: () => import('../views/warehouse.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/path-planning',
     name: 'PathPlanning',
     component: () => import('../views/path-planning.vue'),

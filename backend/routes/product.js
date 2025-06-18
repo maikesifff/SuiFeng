@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { Product, Warehouse, Inventory } = require('../models');
+const { Op } = require('sequelize');
+const { Product, Warehouse, Inventory, Supplier } = require('../models');
 const { success, error } = require('../utils/response');
 const { ValidationError } = require('../utils/error');
 const { authenticate, authorize } = require('../middleware/auth');
@@ -24,7 +25,13 @@ router.get('/', authenticate, async (req, res, next) => {
       include: [
         {
           model: Warehouse,
-          as: 'Warehouse'
+          as: 'warehouse',
+          attributes: ['warehouse_id', 'warehouse_name']
+        },
+        {
+          model: Supplier,
+          as: 'supplier',
+          attributes: ['supplier_id', 'supplier_name']
         }
       ],
       offset,

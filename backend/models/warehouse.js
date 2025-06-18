@@ -10,7 +10,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
-    address: {
+    warehouse_code: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      unique: true
+    },
+    location: {
       type: DataTypes.STRING(200),
       allowNull: false
     },
@@ -18,9 +23,24 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    phone: {
+    manager_name: {
+      type: DataTypes.STRING(50),
+      allowNull: false
+    },
+    contact_phone: {
       type: DataTypes.STRING(20),
       allowNull: false
+    },
+    capacity: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: '仓库容量（平方米）'
+    },
+    status: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
+      comment: '1:正常 0:停用'
     },
     created_at: {
       type: DataTypes.DATE,
@@ -34,5 +54,21 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'warehouse',
     timestamps: false
   });
+
+  Warehouse.associate = function(models) {
+    Warehouse.hasMany(models.Product, {
+      foreignKey: 'warehouse_id',
+      as: 'products'
+    });
+    Warehouse.hasMany(models.Inventory, {
+      foreignKey: 'warehouse_id',
+      as: 'inventory'
+    });
+    Warehouse.belongsTo(models.Employee, {
+      foreignKey: 'manager_id',
+      as: 'manager'
+    });
+  };
+
   return Warehouse;
 }; 

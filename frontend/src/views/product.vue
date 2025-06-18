@@ -15,67 +15,82 @@
               type="text" 
               v-model="searchQuery"
               class="search-input"
-              placeholder="输入产品名称、规格或批次号"
+              placeholder="输入产品名称、规格或编码"
+              @keyup.enter="handleSearch"
             >
           </div>
         </div>
         <div class="filter-group">
-          <div class="filter-label">分类</div>
-          <select v-model="categoryFilter" class="filter-select">
-            <option value="">全部品类</option>
-            <option value="computer">电脑配件</option>
-            <option value="network">网络设备</option>
-            <option value="consumables">消耗品</option>
+          <div class="filter-label">仓库</div>
+          <select v-model="warehouseFilter" class="filter-select">
+            <option value="">全部仓库</option>
+            <option v-for="warehouse in warehouseOptions" :key="warehouse.warehouse_id" :value="warehouse.warehouse_id">
+              {{ warehouse.warehouse_name }}
+            </option>
           </select>
         </div>
-        <button class="filter-button">
+        <div class="filter-group">
+          <div class="filter-label">供应商</div>
+          <select v-model="supplierFilter" class="filter-select">
+            <option value="">全部供应商</option>
+            <option v-for="supplier in supplierOptions" :key="supplier.supplier_id" :value="supplier.supplier_id">
+              {{ supplier.supplier_name }}
+            </option>
+          </select>
+        </div>
+        <button class="filter-button" @click="handleSearch">
           <div class="filter-icon"></div>
-          <span>筛选</span>
+          <span>搜索</span>
+        </button>
+        <button class="add-button" @click="handleAdd">
+          <span>新增产品</span>
         </button>
       </div>
     </div>
 
-    <div class="product-grid">
-      <div v-for="product in filteredProducts" 
-           :key="product.id" 
+    <div v-if="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <div>加载中...</div>
+    </div>
+
+    <div v-else class="product-grid">
+      <div v-for="product in products" 
+           :key="product.product_id" 
            class="product-card">
         <div class="card-header">
-          <div class="card-title">{{ product.name }}</div>
-          <div class="status-badge" :class="getStatusClass(product.quantity)">
-            {{ getStatusText(product.quantity) }}
+          <div class="card-title">{{ product.product_name }}</div>
+          <div class="status-badge" :class="getStatusClass(product.status)">
+            {{ getStatusText(product.status) }}
           </div>
-        </div>
-        <div class="product-image">
-          <img :src="product.image" :alt="product.name">
         </div>
         <div class="card-content">
           <div class="info-row">
+            <div class="info-label">产品编码</div>
+            <div class="info-value">{{ product.product_code }}</div>
+          </div>
+          <div class="info-row">
             <div class="info-label">规格</div>
-            <div class="info-value">{{ product.specification }}</div>
+            <div class="info-value">{{ product.specification || '暂无' }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label">库存数量</div>
-            <div class="info-value">{{ product.quantity }} 件</div>
+            <div class="info-label">单位</div>
+            <div class="info-value">{{ product.unit }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label">当前位置</div>
-            <div class="info-value">{{ product.location }}</div>
+            <div class="info-label">价格</div>
+            <div class="info-value">¥{{ parseFloat(product.price).toFixed(2) }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label">进货时间</div>
-            <div class="info-value">{{ product.purchaseDate }}</div>
+            <div class="info-label">所属仓库</div>
+            <div class="info-value">{{ product.warehouse?.warehouse_name || '未分配' }}</div>
           </div>
           <div class="info-row">
             <div class="info-label">供应商</div>
-            <div class="info-value">{{ product.supplier }}</div>
+            <div class="info-value">{{ product.supplier?.supplier_name || '未分配' }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label">成本价</div>
-            <div class="info-value">¥{{ product.price.toFixed(2) }}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">批次号</div>
-            <div class="info-value">{{ product.batchNumber }}</div>
+            <div class="info-label">库存范围</div>
+            <div class="info-value">{{ product.min_quantity }} - {{ product.max_quantity }} {{ product.unit }}</div>
           </div>
         </div>
         <div class="card-actions">
@@ -87,6 +102,99 @@
             <div class="view-icon"></div>
             <span>详情</span>
           </button>
+          <button class="action-button delete" @click="deleteProduct(product)">
+            <div class="delete-icon"></div>
+            <span>删除</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分页 -->
+    <div v-if="!loading && total > 0" class="pagination">
+      <div class="pagination-info">
+        共 {{ total }} 条记录，第 {{ page }} / {{ Math.ceil(total / pageSize) }} 页
+      </div>
+      <div class="pagination-controls">
+        <button @click="prevPage" :disabled="page <= 1">上一页</button>
+        <button @click="nextPage" :disabled="page >= Math.ceil(total / pageSize)">下一页</button>
+      </div>
+    </div>
+
+    <!-- 新增/编辑产品对话框 -->
+    <div v-if="showDialog" class="dialog-overlay" @click="closeDialog">
+      <div class="dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>{{ isEdit ? '编辑产品' : '新增产品' }}</h3>
+          <button class="close-btn" @click="closeDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <form @submit.prevent="submitForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label>产品名称 *</label>
+                <input v-model="form.product_name" type="text" required>
+              </div>
+              <div class="form-group">
+                <label>产品编码 *</label>
+                <input v-model="form.product_code" type="text" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>所属仓库 *</label>
+                <select v-model="form.warehouse_id" required>
+                  <option value="">请选择仓库</option>
+                  <option v-for="warehouse in warehouseOptions" :key="warehouse.warehouse_id" :value="warehouse.warehouse_id">
+                    {{ warehouse.warehouse_name }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>供应商 *</label>
+                <select v-model="form.supplier_id" required>
+                  <option value="">请选择供应商</option>
+                  <option v-for="supplier in supplierOptions" :key="supplier.supplier_id" :value="supplier.supplier_id">
+                    {{ supplier.supplier_name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>分类 *</label>
+                <input v-model="form.category" type="text" required>
+              </div>
+              <div class="form-group">
+                <label>单位 *</label>
+                <input v-model="form.unit" type="text" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>价格 *</label>
+                <input v-model="form.price" type="number" step="0.01" min="0" required>
+              </div>
+              <div class="form-group">
+                <label>规格</label>
+                <input v-model="form.specification" type="text">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>最小库存</label>
+                <input v-model="form.min_quantity" type="number" min="0">
+              </div>
+              <div class="form-group">
+                <label>最大库存</label>
+                <input v-model="form.max_quantity" type="number" min="0">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" @click="closeDialog">取消</button>
+              <button type="submit" :disabled="submitting">{{ submitting ? '保存中...' : '保存' }}</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -94,91 +202,195 @@
 </template>
 
 <script>
+import { productApi, warehouseApi, supplierApi } from '@/api'
+
 export default {
   name: 'ProductView',
   
   data() {
     return {
+      loading: false,
+      submitting: false,
       searchQuery: '',
-      categoryFilter: '',
-      products: [
-        {
-          id: 1,
-          name: '罗技 G502 游戏鼠标',
-          specification: '有线/16000DPI/11按键',
-          quantity: 28,
-          location: 'A区5排12号货架',
-          purchaseDate: '2025-05-15',
-          supplier: '罗技官方代理商',
-          price: 299.00,
-          batchNumber: 'LOGI-G502-202505',
-          image: 'https://picsum.photos/400/300?random=1',
-          category: 'computer'
-        },
-        {
-          id: 2,
-          name: '金士顿 16GB DDR4 3200',
-          specification: '台式机/CL16/288Pin',
-          quantity: 5,
-          location: 'B区3排8号货架',
-          purchaseDate: '2025-04-20',
-          supplier: '金士顿华东代理',
-          price: 329.00,
-          batchNumber: 'KING-16G-202504',
-          image: 'https://picsum.photos/400/300?random=2',
-          category: 'computer'
-        },
-        {
-          id: 3,
-          name: 'TP-LINK 千兆交换机',
-          specification: '8口/千兆/非网管',
-          quantity: 0,
-          location: 'C区1排5号货架',
-          purchaseDate: '2025-03-10',
-          supplier: 'TP-LINK官方旗舰店',
-          price: 199.00,
-          batchNumber: 'TPL-SW8-202503',
-          image: 'https://picsum.photos/400/300?random=3',
-          category: 'network'
-        }
-      ]
+      warehouseFilter: '',
+      supplierFilter: '',
+      products: [],
+      warehouseOptions: [],
+      supplierOptions: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      showDialog: false,
+      isEdit: false,
+      form: {
+        product_id: '',
+        product_name: '',
+        product_code: '',
+        warehouse_id: '',
+        supplier_id: '',
+        category: '',
+        specification: '',
+        unit: '',
+        price: 0,
+        min_quantity: 0,
+        max_quantity: 0
+      }
     }
   },
 
-  computed: {
-    filteredProducts() {
-      return this.products.filter(product => {
-        const matchesSearch = 
-          product.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          product.specification.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          product.batchNumber.toLowerCase().includes(this.searchQuery.toLowerCase())
-        
-        const matchesCategory = !this.categoryFilter || product.category === this.categoryFilter
-        
-        return matchesSearch && matchesCategory
-      })
-    }
+  async mounted() {
+    await this.loadOptions()
+    await this.loadProducts()
   },
 
   methods: {
-    getStatusClass(quantity) {
-      if (quantity === 0) return 'out-of-stock'
-      if (quantity < 10) return 'low-stock'
-      return 'in-stock'
+    async loadProducts() {
+      this.loading = true
+      try {
+        const params = {
+          page: this.page,
+          pageSize: this.pageSize
+        }
+        
+        if (this.searchQuery) {
+          params.keyword = this.searchQuery
+        }
+        if (this.warehouseFilter) {
+          params.warehouse_id = this.warehouseFilter
+        }
+        if (this.supplierFilter) {
+          params.supplier_id = this.supplierFilter
+        }
+
+        const response = await productApi.getList(params)
+        this.products = response.list || []
+        this.total = response.total || 0
+      } catch (error) {
+        console.error('加载产品列表失败:', error)
+        this.$message?.error('加载产品列表失败')
+      } finally {
+        this.loading = false
+      }
     },
 
-    getStatusText(quantity) {
-      if (quantity === 0) return '缺货'
-      if (quantity < 10) return '库存预警'
-      return '库存充足'
+    async loadOptions() {
+      try {
+        const [warehouseRes, supplierRes] = await Promise.all([
+          warehouseApi.getList({ pageSize: 100 }),
+          supplierApi.getList({ pageSize: 100 })
+        ])
+        
+        this.warehouseOptions = warehouseRes.list || []
+        this.supplierOptions = supplierRes.list || []
+      } catch (error) {
+        console.error('加载选项数据失败:', error)
+      }
+    },
+
+    async handleSearch() {
+      this.page = 1
+      await this.loadProducts()
+    },
+
+    async prevPage() {
+      if (this.page > 1) {
+        this.page--
+        await this.loadProducts()
+      }
+    },
+
+    async nextPage() {
+      if (this.page < Math.ceil(this.total / this.pageSize)) {
+        this.page++
+        await this.loadProducts()
+      }
+    },
+
+    handleAdd() {
+      this.isEdit = false
+      this.form = {
+        product_id: '',
+        product_name: '',
+        product_code: '',
+        warehouse_id: '',
+        supplier_id: '',
+        category: '',
+        specification: '',
+        unit: '',
+        price: 0,
+        min_quantity: 0,
+        max_quantity: 0
+      }
+      this.showDialog = true
     },
 
     editProduct(product) {
-      console.log('编辑产品:', product)
+      this.isEdit = true
+      this.form = {
+        product_id: product.product_id,
+        product_name: product.product_name,
+        product_code: product.product_code,
+        warehouse_id: product.warehouse_id,
+        supplier_id: product.supplier_id,
+        category: product.category,
+        specification: product.specification || '',
+        unit: product.unit,
+        price: parseFloat(product.price),
+        min_quantity: product.min_quantity,
+        max_quantity: product.max_quantity
+      }
+      this.showDialog = true
+    },
+
+    async submitForm() {
+      this.submitting = true
+      try {
+        if (this.isEdit) {
+          await productApi.update(this.form.product_id, this.form)
+          this.$message?.success('产品更新成功')
+        } else {
+          await productApi.create(this.form)
+          this.$message?.success('产品创建成功')
+        }
+        
+        this.closeDialog()
+        await this.loadProducts()
+      } catch (error) {
+        console.error('保存产品失败:', error)
+        this.$message?.error('保存产品失败')
+      } finally {
+        this.submitting = false
+      }
+    },
+
+    async deleteProduct(product) {
+      if (confirm(`确定要删除产品"${product.product_name}"吗？`)) {
+        try {
+          await productApi.delete(product.product_id)
+          this.$message?.success('产品删除成功')
+          await this.loadProducts()
+        } catch (error) {
+          console.error('删除产品失败:', error)
+          this.$message?.error('删除产品失败')
+        }
+      }
     },
 
     viewProduct(product) {
-      console.log('查看产品详情:', product)
+      this.$router.push(`/product-detail/${product.product_id}`)
+    },
+
+    closeDialog() {
+      this.showDialog = false
+      this.submitting = false
+    },
+
+    getStatusClass(status) {
+      return status === 1 ? 'active' : 'inactive'
+    },
+
+    getStatusText(status) {
+      return status === 1 ? '正常' : '停用'
     }
   }
 }
@@ -187,6 +399,8 @@ export default {
 <style scoped>
 .product-page {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
@@ -202,34 +416,47 @@ export default {
 
 .header-subtitle {
   color: #666;
+  font-size: 14px;
 }
 
 .search-box {
   background: white;
   border-radius: 8px;
   padding: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .search-row {
   display: flex;
   gap: 16px;
-  align-items: flex-end;
+  align-items: end;
+  flex-wrap: wrap;
 }
 
-.search-group {
-  flex: 1;
+.search-group, .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.search-label {
+.search-label, .filter-label {
   font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
+  color: #333;
+  font-weight: 500;
 }
 
 .search-input-wrapper {
   position: relative;
+  width: 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
 .search-icon {
@@ -239,238 +466,330 @@ export default {
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
-  border: 2px solid #666;
-  border-radius: 50%;
-}
-
-.search-icon::after {
-  content: '';
-  position: absolute;
-  width: 2px;
-  height: 8px;
-  background: #666;
-  transform: rotate(-45deg);
-  bottom: -4px;
-  right: -4px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 12px 8px 36px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.filter-group {
-  min-width: 120px;
-}
-
-.filter-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>') no-repeat center;
+  opacity: 0.5;
 }
 
 .filter-select {
-  width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  font-size: 14px;
+  min-width: 150px;
 }
 
-.filter-button {
+.filter-button, .add-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: #0070f3;
+}
+
+.filter-button {
+  background: #007bff;
   color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
 }
 
-.filter-icon {
-  width: 16px;
-  height: 16px;
-  position: relative;
+.add-button {
+  background: #28a745;
+  color: white;
 }
 
-.filter-icon::before {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 2px;
-  background: currentColor;
-  top: 4px;
-  left: 0;
+.filter-button:hover, .add-button:hover {
+  opacity: 0.9;
 }
 
-.filter-icon::after {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 2px;
-  background: currentColor;
-  top: 10px;
-  left: 0;
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
 }
 
 .product-card {
   background: white;
   border-radius: 8px;
-  padding: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
 }
 
 .card-title {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
   color: #333;
 }
 
 .status-badge {
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 12px;
   font-size: 12px;
+  font-weight: 500;
 }
 
-.status-badge.in-stock {
-  background: #e6ffe6;
-  color: #00a854;
+.status-badge.active {
+  background: #e8f5e8;
+  color: #28a745;
 }
 
-.status-badge.low-stock {
-  background: #fff3e6;
-  color: #fa8c16;
-}
-
-.status-badge.out-of-stock {
-  background: #fff1f0;
-  color: #f5222d;
-}
-
-.product-image {
-  margin-bottom: 16px;
-}
-
-.product-image img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 4px;
+.status-badge.inactive {
+  background: #ffeaea;
+  color: #dc3545;
 }
 
 .card-content {
-  margin-bottom: 16px;
+  padding: 16px;
 }
 
 .info-row {
   display: flex;
+  justify-content: space-between;
   margin-bottom: 8px;
 }
 
 .info-label {
   color: #666;
-  width: 80px;
-  flex-shrink: 0;
+  font-size: 14px;
+  min-width: 80px;
 }
 
 .info-value {
   color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: right;
   flex: 1;
 }
 
 .card-actions {
   display: flex;
   gap: 8px;
+  padding: 16px;
+  border-top: 1px solid #eee;
 }
 
 .action-button {
   flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 6px 12px;
-  border: none;
+  transition: all 0.2s;
+}
+
+.action-button:hover {
+  background: #f8f9fa;
+}
+
+.action-button.edit:hover {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.action-button.view:hover {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.action-button.delete:hover {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.pagination-controls button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
   border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  margin: 0 4px;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-controls button:not(:disabled):hover {
+  background: #f8f9fa;
+}
+
+/* 对话框样式 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.dialog-content {
+  padding: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.form-actions button {
+  padding: 10px 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
   cursor: pointer;
 }
 
-.action-button.edit {
-  background: #e6f3ff;
-  color: #0070f3;
+.form-actions button[type="submit"] {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
 }
 
-.action-button.view {
-  background: white;
-  border: 1px solid #ddd;
-  color: #333;
+.form-actions button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.edit-icon {
-  width: 14px;
-  height: 14px;
-  position: relative;
-}
-
-.edit-icon::before {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 2px;
-  background: currentColor;
-  top: 0;
-  left: 0;
-}
-
-.edit-icon::after {
-  content: '';
-  position: absolute;
-  width: 2px;
-  height: 14px;
-  background: currentColor;
-  top: 0;
-  left: 0;
-}
-
-.view-icon {
-  width: 14px;
-  height: 14px;
-  position: relative;
-}
-
-.view-icon::before {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 2px;
-  background: currentColor;
-  top: 0;
-  left: 0;
-}
-
-.view-icon::after {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 2px;
-  background: currentColor;
-  top: 6px;
-  left: 0;
+@media (max-width: 768px) {
+  .search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-input-wrapper {
+    width: 100%;
+  }
+  
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style> 

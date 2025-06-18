@@ -54,6 +54,10 @@ backend/coverage/
 backend/.eslintcache
 backend/.stylelintcache
 
+# 数据库迁移和种子文件
+backend/migrations/
+backend/seeders/
+
 # 其他
 *.pid
 *.seed
@@ -74,5 +78,3 @@ coverage/
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml 
-
-随风智能仓库管理系统/
