@@ -56,5 +56,26 @@ module.exports = (sequelize, DataTypes) => {
       }
     ]
   });
+
+  Inventory.associate = function(models) {
+    // 库存属于一个仓库
+    Inventory.belongsTo(models.Warehouse, {
+      foreignKey: 'warehouse_id',
+      as: 'Warehouse'
+    });
+
+    // 库存属于一个产品
+    Inventory.belongsTo(models.Product, {
+      foreignKey: 'product_id',
+      as: 'Product'
+    });
+
+    // 库存可以有多个订单
+    Inventory.hasMany(models.Order, {
+      foreignKey: 'inventory_id',
+      as: 'Orders'
+    });
+  };
+
   return Inventory;
 }; 

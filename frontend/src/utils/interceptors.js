@@ -39,7 +39,12 @@ const responseErrorInterceptor = (error) => {
     const { status, data } = error.response;
     switch (status) {
       case 401:
-        // 只有在非登录页面时才清除登录信息并跳转
+        // 区分认证失败和权限不足
+        if (data?.message?.includes('权限') || data?.message?.includes('没有权限')) {
+          // 权限不足，只返回错误信息，不跳转登录页
+          return Promise.reject(new Error('您没有权限执行此操作'));
+        }
+        // 认证失败（token过期等），跳转登录页
         if (window.location.pathname !== '/login') {
           localStorage.removeItem('token');
           localStorage.removeItem('userInfo');

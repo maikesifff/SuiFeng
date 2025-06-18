@@ -29,5 +29,14 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'shipper',
     timestamps: false
   });
+
+  Shipper.associate = function(models) {
+    // 货主可以有多个订单
+    Shipper.hasMany(models.Order, {
+      foreignKey: 'shipper_id',
+      as: 'Orders'
+    });
+  };
+
   return Shipper;
 }; 

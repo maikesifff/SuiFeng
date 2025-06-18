@@ -73,7 +73,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // 更新库存
-router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id', authenticate, authorize('系统管理员', '仓库管理员'), async (req, res, next) => {
   try {
     const { quantity, min_quantity, max_quantity } = req.body;
     const inventory = await Inventory.findByPk(req.params.id);

@@ -54,5 +54,36 @@ module.exports = (sequelize, DataTypes) => {
     return this.password === password; // 简单比较，实际应该使用加密
   };
 
+  // 添加获取用户角色的方法
+  User.prototype.getRoles = async function() {
+    if (!this.employee_id) {
+      return [];
+    }
+    
+    const sequelize = require('sequelize');
+    const db = require('./index');
+    
+    const employee = await db.Employee.findByPk(this.employee_id, {
+      include: [
+        {
+          model: db.EmployeeRole,
+          as: 'EmployeeRoles',
+          include: [
+            {
+              model: db.Role,
+              as: 'Role'
+            }
+          ]
+        }
+      ]
+    });
+    
+    if (!employee || !employee.EmployeeRoles) {
+      return [];
+    }
+    
+    return employee.EmployeeRoles.map(er => er.Role);
+  };
+
   return User;
 }; 

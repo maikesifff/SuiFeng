@@ -22,5 +22,14 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'role',
     timestamps: false
   });
+
+  Role.associate = (models) => {
+    // 角色可以有多个员工
+    Role.hasMany(models.EmployeeRole, {
+      foreignKey: 'role_id',
+      as: 'EmployeeRoles'
+    });
+  };
+
   return Role;
 }; 

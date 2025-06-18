@@ -38,5 +38,32 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'order',
     timestamps: false
   });
+
+  Order.associate = function(models) {
+    // 订单属于一个货主
+    Order.belongsTo(models.Shipper, {
+      foreignKey: 'shipper_id',
+      as: 'Shipper'
+    });
+
+    // 订单属于一个员工
+    Order.belongsTo(models.Employee, {
+      foreignKey: 'employee_id',
+      as: 'Employee'
+    });
+
+    // 订单关联一个库存项
+    Order.belongsTo(models.Inventory, {
+      foreignKey: 'inventory_id',
+      as: 'Inventory'
+    });
+
+    // 订单有一个配送记录
+    Order.hasOne(models.Delivery, {
+      foreignKey: 'order_id',
+      as: 'Delivery'
+    });
+  };
+
   return Order;
 }; 

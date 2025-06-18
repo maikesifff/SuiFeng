@@ -42,7 +42,7 @@
           <div class="filter-icon"></div>
           <span>搜索</span>
         </button>
-        <button class="add-button" @click="handleAdd">
+        <button class="add-button" @click="handleAdd" v-permission="['系统管理员', '仓库管理员']">
           <span>新增产品</span>
         </button>
       </div>
@@ -94,7 +94,7 @@
           </div>
         </div>
         <div class="card-actions">
-          <button class="action-button edit" @click="editProduct(product)">
+          <button class="action-button edit" @click="editProduct(product)" v-permission="['系统管理员', '仓库管理员']">
             <div class="edit-icon"></div>
             <span>编辑</span>
           </button>
@@ -102,7 +102,7 @@
             <div class="view-icon"></div>
             <span>详情</span>
           </button>
-          <button class="action-button delete" @click="deleteProduct(product)">
+          <button class="action-button delete" @click="deleteProduct(product)" v-permission="['系统管理员', '仓库管理员']">
             <div class="delete-icon"></div>
             <span>删除</span>
           </button>
@@ -173,7 +173,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label>价格 *</label>
-                <input v-model="form.price" type="number" step="0.01" min="0" required>
+                <input v-model="form.price" type="number" step="0.01" min="0.01" max="99999999.99" required>
               </div>
               <div class="form-group">
                 <label>规格</label>
@@ -183,11 +183,11 @@
             <div class="form-row">
               <div class="form-group">
                 <label>最小库存</label>
-                <input v-model="form.min_quantity" type="number" min="0">
+                <input v-model="form.min_quantity" type="number" min="0" max="999999">
               </div>
               <div class="form-group">
                 <label>最大库存</label>
-                <input v-model="form.max_quantity" type="number" min="0">
+                <input v-model="form.max_quantity" type="number" min="0" max="999999">
               </div>
             </div>
             <div class="form-actions">
@@ -238,6 +238,16 @@ export default {
     }
   },
 
+  watch: {
+    // 监听筛选条件变化，自动触发搜索
+    warehouseFilter() {
+      this.handleSearch()
+    },
+    supplierFilter() {
+      this.handleSearch()
+    }
+  },
+
   async mounted() {
     await this.loadOptions()
     await this.loadProducts()
@@ -284,6 +294,13 @@ export default {
         this.supplierOptions = supplierRes.list || []
       } catch (error) {
         console.error('加载选项数据失败:', error)
+        // 如果加载失败，至少保证选项数组不为空
+        this.warehouseOptions = []
+        this.supplierOptions = []
+        
+        // 显示具体的错误信息
+        const errorMessage = error.response?.data?.message || error.message || '加载选项数据失败'
+        this.$message?.error(`加载选项数据失败: ${errorMessage}`)
       }
     },
 
@@ -325,59 +342,73 @@ export default {
     },
 
     editProduct(product) {
-      this.isEdit = true
-      this.form = {
-        product_id: product.product_id,
-        product_name: product.product_name,
-        product_code: product.product_code,
-        warehouse_id: product.warehouse_id,
-        supplier_id: product.supplier_id,
-        category: product.category,
-        specification: product.specification || '',
-        unit: product.unit,
-        price: parseFloat(product.price),
-        min_quantity: product.min_quantity,
-        max_quantity: product.max_quantity
-      }
-      this.showDialog = true
+      this.$router.push(`/product/edit?id=${product.product_id}`)
     },
 
     async submitForm() {
+      // 添加数值范围验证
+      if (this.form.price <= 0) {
+        alert('单价必须大于0')
+        return
+      }
+
+      if (this.form.price > 99999999.99) {
+        alert('单价不能超过99999999.99')
+        return
+      }
+
+      if (this.form.min_quantity < 0 || this.form.max_quantity < 0) {
+        alert('库存数量不能为负数')
+        return
+      }
+
+      if (this.form.min_quantity > 999999 || this.form.max_quantity > 999999) {
+        alert('库存数量不能超过999999')
+        return
+      }
+
+      if (this.form.min_quantity > this.form.max_quantity) {
+        alert('最小库存不能大于最大库存')
+        return
+      }
+
       this.submitting = true
       try {
         if (this.isEdit) {
           await productApi.update(this.form.product_id, this.form)
-          this.$message?.success('产品更新成功')
+          alert('产品更新成功')
         } else {
           await productApi.create(this.form)
-          this.$message?.success('产品创建成功')
+          alert('产品创建成功')
         }
         
         this.closeDialog()
         await this.loadProducts()
       } catch (error) {
         console.error('保存产品失败:', error)
-        this.$message?.error('保存产品失败')
+        alert('保存产品失败')
       } finally {
         this.submitting = false
       }
     },
 
     async deleteProduct(product) {
-      if (confirm(`确定要删除产品"${product.product_name}"吗？`)) {
-        try {
-          await productApi.delete(product.product_id)
-          this.$message?.success('产品删除成功')
-          await this.loadProducts()
-        } catch (error) {
-          console.error('删除产品失败:', error)
-          this.$message?.error('删除产品失败')
-        }
+      if (!confirm(`确定要删除产品"${product.product_name}"吗？`)) {
+        return
+      }
+      
+      try {
+        await productApi.delete(product.product_id)
+        this.$message?.success('产品删除成功')
+        await this.loadProducts()
+      } catch (error) {
+        console.error('删除产品失败:', error)
+        this.$message?.error('删除产品失败')
       }
     },
 
     viewProduct(product) {
-      this.$router.push(`/product-detail/${product.product_id}`)
+      this.$router.push(`/product/detail?id=${product.product_id}`)
     },
 
     closeDialog() {

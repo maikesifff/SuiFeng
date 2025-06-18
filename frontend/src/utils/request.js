@@ -3,7 +3,7 @@ import { setupInterceptors } from './interceptors';
 
 // 创建 axios 实例
 const service = axios.create({
-  baseURL: 'http://localhost:3000/api/v1', // 修改为正确的API前缀
+  baseURL: 'http://localhost:3000', // 移除API前缀，直接使用后端基础URL
   timeout: 15000, // 请求超时时间，毫秒
   headers: {
     'Content-Type': 'application/json;charset=utf-8'

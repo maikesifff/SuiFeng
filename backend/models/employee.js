@@ -44,6 +44,18 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'department_id',
       as: 'Department'
     });
+
+    // 员工可以处理多个订单
+    Employee.hasMany(models.Order, {
+      foreignKey: 'employee_id',
+      as: 'Orders'
+    });
+
+    // 员工可以有多个角色
+    Employee.hasMany(models.EmployeeRole, {
+      foreignKey: 'employee_id',
+      as: 'EmployeeRoles'
+    });
   };
 
   return Employee;

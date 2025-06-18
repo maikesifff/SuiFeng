@@ -1,67 +1,29 @@
 require('dotenv').config();
+const { Sequelize } = require('sequelize');
+const config = require('./config.json');
+const logger = require('../utils/logger');
+
+const env = process.env.NODE_ENV || 'development';
+const dbConfig = config[env];
+
+const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, {
+  host: dbConfig.host,
+  dialect: dbConfig.dialect,
+  logging: (sql, timing) => {
+    logger.database('SQL Query', 'Database', {
+      sql: sql,
+      timing: timing ? `${timing}ms` : undefined
+    });
+  },
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  }
+});
 
 module.exports = {
-  development: {
-    username: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'root',
-    database: process.env.DB_NAME || 'logisticswarehousedb',
-    host: process.env.DB_HOST || '127.0.0.1',
-    port: process.env.DB_PORT || 3306,
-    dialect: 'mysql',
-    logging: console.log,
-    timezone: '+08:00',
-    define: {
-      timestamps: true,
-      underscored: true,
-      underscoredAll: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      deletedAt: 'deleted_at',
-      paranoid: true
-    }
-  },
-  test: {
-    username: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'root',
-    database: process.env.DB_NAME || 'logisticswarehousedb_test',
-    host: process.env.DB_HOST || '127.0.0.1',
-    port: process.env.DB_PORT || 3306,
-    dialect: 'mysql',
-    logging: false,
-    timezone: '+08:00',
-    define: {
-      timestamps: true,
-      underscored: true,
-      underscoredAll: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      deletedAt: 'deleted_at',
-      paranoid: true
-    }
-  },
-  production: {
-    username: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'root',
-    database: process.env.DB_NAME || 'logisticswarehousedb_prod',
-    host: process.env.DB_HOST || '127.0.0.1',
-    port: process.env.DB_PORT || 3306,
-    dialect: 'mysql',
-    logging: false,
-    timezone: '+08:00',
-    define: {
-      timestamps: true,
-      underscored: true,
-      underscoredAll: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      deletedAt: 'deleted_at',
-      paranoid: true
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
-  }
+  sequelize,
+  Sequelize
 }; 

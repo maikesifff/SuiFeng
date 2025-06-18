@@ -60,7 +60,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // 创建供应商
-router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/', authenticate, authorize('系统管理员'), async (req, res, next) => {
   try {
     const {
       supplier_name,
@@ -105,7 +105,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
 });
 
 // 更新供应商
-router.put('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.put('/:id', authenticate, authorize('系统管理员'), async (req, res, next) => {
   try {
     const {
       supplier_name,
@@ -153,7 +153,7 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res, next) => {
 });
 
 // 删除供应商
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:id', authenticate, authorize('系统管理员'), async (req, res, next) => {
   try {
     const supplier = await Supplier.findByPk(req.params.id);
 

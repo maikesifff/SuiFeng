@@ -62,9 +62,15 @@ const authorize = (...roles) => {
         throw new AuthenticationError('请先登录');
       }
 
+      console.log('当前用户:', req.user.username, '员工ID:', req.user.employee_id);
+      console.log('需要的角色:', roles);
+
       // 获取用户角色
       const userRoles = await req.user.getRoles();
+      console.log('用户角色:', userRoles.map(role => role.role_name));
+      
       const hasRole = userRoles.some(role => roles.includes(role.role_name));
+      console.log('是否有权限:', hasRole);
 
       if (!hasRole) {
         throw new AuthenticationError('没有权限访问');
@@ -72,6 +78,7 @@ const authorize = (...roles) => {
 
       next();
     } catch (error) {
+      console.error('权限验证错误:', error);
       unauthorized(res, error.message);
     }
   };

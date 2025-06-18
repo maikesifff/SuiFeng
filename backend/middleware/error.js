@@ -1,5 +1,5 @@
 const { error: errorResponse } = require('../utils/response');
-const { logger } = require('../utils/logger');
+const logger = require('../utils/logger');
 const { 
   ValidationError,
   AuthenticationError,
@@ -10,10 +10,29 @@ const {
   AppError
 } = require('../utils/error');
 
+// 请求日志中间件
+const requestLogger = (req, res, next) => {
+  const start = Date.now();
+  
+  // 记录请求开始
+  logger.request(req);
+  
+  // 监听响应结束事件
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    res.responseTime = duration;
+    
+    // 记录响应
+    logger.response(req, res);
+  });
+  
+  next();
+};
+
 // 错误处理中间件
 const errorHandler = (err, req, res, next) => {
   // 记录错误日志
-  logger.error({
+  logger.error('Request error', {
     error: err.message,
     stack: err.stack,
     method: req.method,
@@ -64,6 +83,7 @@ const notFoundHandler = (req, res, next) => {
 };
 
 module.exports = {
+  requestLogger,
   errorHandler,
   notFoundHandler
 }; 

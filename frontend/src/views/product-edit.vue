@@ -13,35 +13,61 @@
             <div class="form-label">产品名称</div>
             <input 
               type="text" 
-              v-model="product.name"
+              v-model="form.product_name"
               class="form-input"
               placeholder="请输入产品名称"
-            >
-          </div>
-          <div class="form-group">
-            <div class="form-label">规格型号</div>
-            <input 
-              type="text" 
-              v-model="product.specification"
-              class="form-input"
-              placeholder="请输入规格型号"
+              required
             >
           </div>
           <div class="form-group">
             <div class="form-label">产品分类</div>
-            <select v-model="product.category" class="form-select">
-              <option value="computer">电脑配件</option>
-              <option value="network">网络设备</option>
-              <option value="consumables">消耗品</option>
+            <select v-model="form.category" class="form-select">
+              <option value="laptop">笔记本电脑</option>
+              <option value="desktop">台式电脑</option>
+              <option value="tablet">平板电脑</option>
+              <option value="phone">手机</option>
+              <option value="accessory">配件</option>
             </select>
           </div>
           <div class="form-group">
-            <div class="form-label">批次号</div>
+            <div class="form-label">产品编号</div>
             <input 
               type="text" 
-              v-model="product.batchNumber"
+              v-model="form.product_code"
               class="form-input"
-              placeholder="请输入批次号"
+              placeholder="请输入产品编号"
+              required
+            >
+          </div>
+          <div class="form-group">
+            <div class="form-label">规格说明</div>
+            <input 
+              type="text" 
+              v-model="form.specification"
+              class="form-input"
+              placeholder="请输入产品规格"
+            >
+          </div>
+          <div class="form-group">
+            <div class="form-label">单位</div>
+            <select v-model="form.unit" class="form-select">
+              <option value="件">件</option>
+              <option value="台">台</option>
+              <option value="个">个</option>
+              <option value="套">套</option>
+              <option value="盒">盒</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">单价</div>
+            <input 
+              type="number" 
+              v-model="form.price"
+              class="form-input"
+              placeholder="请输入单价"
+              step="0.01"
+              min="0.01"
+              max="99999999.99"
             >
           </div>
         </div>
@@ -51,39 +77,44 @@
         <div class="section-title">库存信息</div>
         <div class="form-grid">
           <div class="form-group">
-            <div class="form-label">当前库存</div>
+            <div class="form-label">最小库存</div>
             <input 
               type="number" 
-              v-model="product.quantity"
+              v-model="form.min_quantity"
               class="form-input"
-              placeholder="请输入库存数量"
+              placeholder="请输入最小库存量"
+              min="0"
+              max="999999"
             >
           </div>
           <div class="form-group">
-            <div class="form-label">存放位置</div>
-            <input 
-              type="text" 
-              v-model="product.location"
-              class="form-input"
-              placeholder="请输入存放位置"
-            >
-          </div>
-          <div class="form-group">
-            <div class="form-label">进货时间</div>
-            <input 
-              type="date" 
-              v-model="product.purchaseDate"
-              class="form-input"
-            >
-          </div>
-          <div class="form-group">
-            <div class="form-label">成本价</div>
+            <div class="form-label">最大库存</div>
             <input 
               type="number" 
-              v-model="product.price"
+              v-model="form.max_quantity"
               class="form-input"
-              placeholder="请输入成本价"
+              placeholder="请输入最大库存量"
+              min="0"
+              max="999999"
             >
+          </div>
+          <div class="form-group">
+            <div class="form-label">状态</div>
+            <select v-model="form.status" class="form-select">
+              <option value="1">正常</option>
+              <option value="0">停用</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">所属仓库 *</div>
+            <select v-model="form.warehouse_id" class="form-select" required>
+              <option value="">请选择仓库</option>
+              <option v-for="warehouse in warehouseOptions" 
+                      :key="warehouse.warehouse_id" 
+                      :value="warehouse.warehouse_id">
+                {{ warehouse.warehouse_name }}
+              </option>
+            </select>
           </div>
         </div>
       </div>
@@ -92,128 +123,176 @@
         <div class="section-title">供应商信息</div>
         <div class="form-grid">
           <div class="form-group">
-            <div class="form-label">供应商名称</div>
-            <input 
-              type="text" 
-              v-model="product.supplier"
-              class="form-input"
-              placeholder="请输入供应商名称"
-            >
-          </div>
-          <div class="form-group">
-            <div class="form-label">联系人</div>
-            <input 
-              type="text" 
-              v-model="product.contact"
-              class="form-input"
-              placeholder="请输入联系人"
-            >
-          </div>
-          <div class="form-group">
-            <div class="form-label">联系电话</div>
-            <input 
-              type="tel" 
-              v-model="product.phone"
-              class="form-input"
-              placeholder="请输入联系电话"
-            >
-          </div>
-          <div class="form-group">
-            <div class="form-label">电子邮箱</div>
-            <input 
-              type="email" 
-              v-model="product.email"
-              class="form-input"
-              placeholder="请输入电子邮箱"
-            >
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="section-title">产品图片</div>
-        <div class="image-upload">
-          <div class="upload-box" @click="triggerUpload">
-            <div class="upload-icon"></div>
-            <div class="upload-text">点击上传产品图片</div>
-            <input 
-              type="file" 
-              ref="fileInput"
-              class="file-input"
-              accept="image/*"
-              @change="handleFileUpload"
-            >
-          </div>
-          <div v-if="product.image" class="preview-image">
-            <img :src="product.image" alt="产品图片预览">
-            <button class="remove-image" @click="removeImage">
-              <div class="remove-icon"></div>
-            </button>
+            <div class="form-label">供应商 *</div>
+            <select v-model="form.supplier_id" class="form-select" required>
+              <option value="">请选择供应商</option>
+              <option v-for="supplier in supplierOptions" 
+                      :key="supplier.supplier_id" 
+                      :value="supplier.supplier_id">
+                {{ supplier.supplier_name }}
+              </option>
+            </select>
           </div>
         </div>
       </div>
 
       <div class="form-actions">
-        <button class="cancel-button" @click="cancelEdit">取消</button>
-        <button class="save-button" @click="saveProduct">保存</button>
+        <button class="cancel-button" @click="goBack" :disabled="loading">取消</button>
+        <button class="save-button" @click="handleSubmit" :disabled="loading">
+          {{ loading ? '保存中...' : '保存' }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { productApi, warehouseApi, supplierApi } from '@/api'
+
 export default {
   name: 'ProductEditView',
   
   data() {
     return {
-      product: {
-        id: null,
-        name: '',
+      loading: false,
+      submitting: false,
+      isEdit: false,
+      productId: null,
+      form: {
+        product_name: '',
+        product_code: '',
+        category: '',
         specification: '',
-        category: 'computer',
-        batchNumber: '',
-        quantity: 0,
-        location: '',
-        purchaseDate: '',
+        unit: '',
         price: 0,
-        supplier: '',
-        contact: '',
-        phone: '',
-        email: '',
-        image: ''
-      }
+        min_quantity: 0,
+        max_quantity: 9999,
+        status: 1,
+        warehouse_id: '',
+        supplier_id: ''
+      },
+      warehouseOptions: [],
+      supplierOptions: []
+    }
+  },
+
+  async mounted() {
+    this.productId = this.$route.query.id
+    this.isEdit = !!this.productId
+    
+    await this.loadOptions()
+    
+    if (this.isEdit) {
+      await this.loadProduct()
     }
   },
 
   methods: {
-    triggerUpload() {
-      this.$refs.fileInput.click()
-    },
-
-    handleFileUpload(event) {
-      const file = event.target.files[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.product.image = e.target.result
+    async loadProduct() {
+      if (!this.productId) return
+      
+      try {
+        this.loading = true
+        const response = await productApi.getById(this.productId)
+        this.form = {
+          product_name: response.product_name || '',
+          product_code: response.product_code || '',
+          category: response.category || '',
+          specification: response.specification || '',
+          unit: response.unit || '',
+          price: response.price || 0,
+          min_quantity: response.min_quantity || 0,
+          max_quantity: response.max_quantity || 9999,
+          status: response.status || 1,
+          warehouse_id: response.warehouse_id || '',
+          supplier_id: response.supplier_id || ''
         }
-        reader.readAsDataURL(file)
+      } catch (error) {
+        console.error('加载产品失败:', error)
+        alert('加载产品失败')
+        this.$router.push('/product')
+      } finally {
+        this.loading = false
       }
     },
 
-    removeImage() {
-      this.product.image = ''
-      this.$refs.fileInput.value = ''
+    async loadOptions() {
+      try {
+        const [warehouseRes, supplierRes] = await Promise.all([
+          warehouseApi.getList({ pageSize: 100 }),
+          supplierApi.getList({ pageSize: 100 })
+        ])
+        
+        this.warehouseOptions = warehouseRes.list || []
+        this.supplierOptions = supplierRes.list || []
+      } catch (error) {
+        console.error('加载选项数据失败:', error)
+      }
     },
 
-    cancelEdit() {
-      this.$router.push('/product')
+    async handleSubmit() {
+      // 表单验证
+      if (!this.form.product_name || !this.form.product_code || !this.form.category || 
+          !this.form.unit || !this.form.price || !this.form.warehouse_id || !this.form.supplier_id) {
+        alert('请填写所有必填字段（产品名称、产品编号、分类、单位、单价、仓库、供应商）')
+        return
+      }
+
+      if (this.form.price <= 0) {
+        alert('单价必须大于0')
+        return
+      }
+
+      if (this.form.price > 99999999.99) {
+        alert('单价不能超过99999999.99')
+        return
+      }
+
+      if (this.form.min_quantity < 0 || this.form.max_quantity < 0) {
+        alert('库存数量不能为负数')
+        return
+      }
+
+      if (this.form.min_quantity > 999999 || this.form.max_quantity > 999999) {
+        alert('库存数量不能超过999999')
+        return
+      }
+
+      if (this.form.min_quantity > this.form.max_quantity) {
+        alert('最小库存不能大于最大库存')
+        return
+      }
+
+      this.submitting = true
+      try {
+        if (this.isEdit) {
+          await productApi.update(this.productId, this.form)
+          alert('产品更新成功')
+          // 编辑成功后回到产品详情页
+          this.$router.push(`/product/detail?id=${this.productId}`)
+        } else {
+          await productApi.create(this.form)
+          alert('产品创建成功')
+          // 新增成功后回到产品列表
+          this.$router.push('/product')
+        }
+      } catch (error) {
+        console.error('保存产品失败:', error)
+        alert('保存产品失败')
+      } finally {
+        this.submitting = false
+      }
     },
 
-    saveProduct() {
-      console.log('保存产品:', this.product)
-      this.$router.push('/product')
+    goBack() {
+      // 检查是否有上一个页面历史记录
+      if (window.history.length > 1) {
+        // 使用浏览器后退功能回到上一个页面
+        this.$router.go(-1)
+      } else {
+        // 如果没有历史记录，回到产品列表
+        this.$router.push('/product')
+      }
     }
   }
 }

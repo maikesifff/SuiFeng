@@ -84,7 +84,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // 创建运输任务
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authenticate, authorize('系统管理员', '运输调度员'), async (req, res, next) => {
   try {
     const {
       order_id,
@@ -145,7 +145,7 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 });
 
 // 更新运输任务状态
-router.put('/:id/status', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id/status', authenticate, authorize('系统管理员', '运输调度员'), async (req, res, next) => {
   try {
     const { status } = req.body;
     const transport = await Transport.findByPk(req.params.id, {
@@ -187,7 +187,7 @@ router.put('/:id/status', authenticate, authorize('admin', 'manager'), async (re
 });
 
 // 取消运输任务
-router.post('/:id/cancel', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/:id/cancel', authenticate, authorize('系统管理员', '运输调度员'), async (req, res, next) => {
   try {
     const transport = await Transport.findByPk(req.params.id, {
       include: [

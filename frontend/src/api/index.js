@@ -10,29 +10,30 @@ export const authApi = {
 
 // 产品相关API
 export const productApi = {
-  getList: (params) => get('/products', params),
-  getById: (id) => get(`/products/${id}`),
-  create: (data) => post('/products', data),
-  update: (id, data) => put(`/products/${id}`, data),
-  delete: (id) => del(`/products/${id}`)
+  getList: (params) => get('/product', params),
+  getById: (id) => get(`/product/${id}`),
+  create: (data) => post('/product', data),
+  update: (id, data) => put(`/product/${id}`, data),
+  delete: (id) => del(`/product/${id}`)
 };
 
 // 仓库相关API
 export const warehouseApi = {
-  getList: (params) => get('/warehouses', params),
-  getById: (id) => get(`/warehouses/${id}`),
-  create: (data) => post('/warehouses', data),
-  update: (id, data) => put(`/warehouses/${id}`, data),
-  delete: (id) => del(`/warehouses/${id}`)
+  getList: (params) => get('/warehouse', params),
+  getById: (id) => get(`/warehouse/${id}`),
+  create: (data) => post('/warehouse', data),
+  update: (id, data) => put(`/warehouse/${id}`, data),
+  delete: (id) => del(`/warehouse/${id}`),
+  getManagers: () => get('/warehouse/managers/available')
 };
 
 // 供应商相关API
 export const supplierApi = {
-  getList: (params) => get('/suppliers', params),
-  getById: (id) => get(`/suppliers/${id}`),
-  create: (data) => post('/suppliers', data),
-  update: (id, data) => put(`/suppliers/${id}`, data),
-  delete: (id) => del(`/suppliers/${id}`)
+  getList: (params) => get('/supplier', params),
+  getById: (id) => get(`/supplier/${id}`),
+  create: (data) => post('/supplier', data),
+  update: (id, data) => put(`/supplier/${id}`, data),
+  delete: (id) => del(`/supplier/${id}`)
 };
 
 // 库存相关API
@@ -45,12 +46,13 @@ export const inventoryApi = {
 
 // 订单相关API
 export const orderApi = {
-  getList: (params) => get('/orders', params),
-  getById: (id) => get(`/orders/${id}`),
-  create: (data) => post('/orders', data),
-  update: (id, data) => put(`/orders/${id}`, data),
-  delete: (id) => del(`/orders/${id}`),
-  updateStatus: (id, data) => put(`/orders/${id}/status`, data)
+  getList: (params) => get('/order', params),
+  getById: (id) => get(`/order/${id}`),
+  create: (data) => post('/order', data),
+  update: (id, data) => put(`/order/${id}`, data),
+  delete: (id) => del(`/order/${id}`),
+  updateStatus: (id, data) => put(`/order/${id}/status`, data),
+  cancel: (id) => post(`/order/${id}/cancel`)
 };
 
 // 运输相关API
@@ -72,6 +74,16 @@ export const userApi = {
   delete: (id) => del(`/users/${id}`),
   getProfile: () => get('/users/profile'),
   updateProfile: (data) => put('/users/profile', data)
+};
+
+// 员工相关API
+export const employeeApi = {
+  getList: (params) => get('/employee', params),
+  getById: (id) => get(`/employee/${id}`),
+  create: (data) => post('/employee', data),
+  update: (id, data) => put(`/employee/${id}`, data),
+  delete: (id) => del(`/employee/${id}`),
+  getManagers: () => get('/employee/managers')
 };
 
  

@@ -20,5 +20,20 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'employee_role',
     timestamps: false
   });
+
+  EmployeeRole.associate = (models) => {
+    // 关联Employee
+    EmployeeRole.belongsTo(models.Employee, {
+      foreignKey: 'employee_id',
+      as: 'Employee'
+    });
+
+    // 关联Role
+    EmployeeRole.belongsTo(models.Role, {
+      foreignKey: 'role_id',
+      as: 'Role'
+    });
+  };
+
   return EmployeeRole;
 }; 

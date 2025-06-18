@@ -15,7 +15,7 @@
               type="text" 
               v-model="searchQuery"
               class="search-input"
-              placeholder="输入订单号、客户名称或产品名称"
+              placeholder="输入订单ID、货主名称或产品名称"
             >
           </div>
         </div>
@@ -23,36 +23,35 @@
           <div class="filter-label">订单状态</div>
           <select v-model="statusFilter" class="filter-select">
             <option value="">全部状态</option>
-            <option value="pending">待处理</option>
-            <option value="processing">处理中</option>
-            <option value="shipped">已发货</option>
-            <option value="delivered">已送达</option>
-            <option value="cancelled">已取消</option>
+            <option value="创建">创建</option>
+            <option value="处理中">处理中</option>
+            <option value="已发货">已发货</option>
+            <option value="已完成">已完成</option>
+            <option value="已取消">已取消</option>
+            <option value="退货中">退货中</option>
           </select>
         </div>
-        <button class="filter-button">
-          <div class="filter-icon"></div>
-          <span>筛选</span>
-        </button>
       </div>
     </div>
 
     <div class="order-table">
       <div class="table-header">
-        <div class="header-cell">订单号</div>
-        <div class="header-cell">客户名称</div>
-        <div class="header-cell">订单金额</div>
+        <div class="header-cell">订单ID</div>
+        <div class="header-cell">货主名称</div>
+        <div class="header-cell">产品名称</div>
+        <div class="header-cell">数量</div>
         <div class="header-cell">下单时间</div>
         <div class="header-cell">订单状态</div>
         <div class="header-cell">操作</div>
       </div>
       <div v-for="order in filteredOrders" 
-           :key="order.id" 
+           :key="order.order_id" 
            class="table-row">
-        <div class="table-cell">{{ order.orderNumber }}</div>
-        <div class="table-cell">{{ order.customerName }}</div>
-        <div class="table-cell">¥{{ order.amount.toFixed(2) }}</div>
-        <div class="table-cell">{{ order.orderTime }}</div>
+        <div class="table-cell">{{ order.order_id }}</div>
+        <div class="table-cell">{{ order.Shipper?.shipper_name || '未知货主' }}</div>
+        <div class="table-cell">{{ order.Inventory?.Product?.product_name || '未知产品' }}</div>
+        <div class="table-cell">{{ order.quantity }}</div>
+        <div class="table-cell">{{ order.created_at }}</div>
         <div class="table-cell">
           <div class="status-badge" :class="getStatusClass(order.status)">
             {{ getStatusText(order.status) }}
@@ -64,13 +63,13 @@
               <div class="view-icon"></div>
               <span>查看</span>
             </button>
-            <button v-if="order.status === 'pending'" 
+            <button v-if="order.status === '创建'" 
                     class="action-button process" 
                     @click="processOrder(order)">
               <div class="process-icon"></div>
               <span>处理</span>
             </button>
-            <button v-if="order.status === 'processing'" 
+            <button v-if="order.status === '处理中'" 
                     class="action-button ship" 
                     @click="shipOrder(order)">
               <div class="ship-icon"></div>
@@ -96,6 +95,8 @@
 </template>
 
 <script>
+import { orderApi } from '@/api'
+
 export default {
   name: 'OrderCustomerView',
   
@@ -104,58 +105,24 @@ export default {
       searchQuery: '',
       statusFilter: '',
       currentPage: 1,
-      totalPages: 5,
-      orders: [
-        {
-          id: 1,
-          orderNumber: 'ORD20250515001',
-          customerName: '张三',
-          amount: 299.00,
-          orderTime: '2025-05-15 10:30',
-          status: 'pending'
-        },
-        {
-          id: 2,
-          orderNumber: 'ORD20250515002',
-          customerName: '李四',
-          amount: 599.00,
-          orderTime: '2025-05-15 11:20',
-          status: 'processing'
-        },
-        {
-          id: 3,
-          orderNumber: 'ORD20250515003',
-          customerName: '王五',
-          amount: 899.00,
-          orderTime: '2025-05-15 14:15',
-          status: 'shipped'
-        },
-        {
-          id: 4,
-          orderNumber: 'ORD20250515004',
-          customerName: '赵六',
-          amount: 399.00,
-          orderTime: '2025-05-15 16:45',
-          status: 'delivered'
-        },
-        {
-          id: 5,
-          orderNumber: 'ORD20250515005',
-          customerName: '钱七',
-          amount: 199.00,
-          orderTime: '2025-05-15 17:30',
-          status: 'cancelled'
-        }
-      ]
+      pageSize: 10,
+      total: 0,
+      loading: false,
+      orders: []
     }
   },
 
   computed: {
+    totalPages() {
+      return Math.ceil(this.total / this.pageSize)
+    },
+    
     filteredOrders() {
       return this.orders.filter(order => {
         const matchesSearch = 
-          order.orderNumber.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          order.customerName.toLowerCase().includes(this.searchQuery.toLowerCase())
+          (order.order_id && order.order_id.toString().includes(this.searchQuery)) ||
+          (order.Shipper && order.Shipper.shipper_name && order.Shipper.shipper_name.toLowerCase().includes(this.searchQuery.toLowerCase())) ||
+          (order.Inventory && order.Inventory.Product && order.Inventory.Product.product_name && order.Inventory.Product.product_name.toLowerCase().includes(this.searchQuery.toLowerCase()))
         
         const matchesStatus = !this.statusFilter || order.status === this.statusFilter
         
@@ -165,50 +132,101 @@ export default {
   },
 
   methods: {
+    async loadOrders() {
+      try {
+        this.loading = true
+        const response = await orderApi.getList({
+          page: this.currentPage,
+          pageSize: this.pageSize,
+          status: this.statusFilter,
+          keyword: this.searchQuery
+        })
+        this.orders = response.list || []
+        this.total = response.total || 0
+      } catch (error) {
+        console.error('加载订单列表失败:', error)
+        alert('加载订单列表失败')
+      } finally {
+        this.loading = false
+      }
+    },
+
     getStatusClass(status) {
       const classes = {
-        pending: 'status-pending',
-        processing: 'status-processing',
-        shipped: 'status-shipped',
-        delivered: 'status-delivered',
-        cancelled: 'status-cancelled'
+        '创建': 'status-pending',
+        '处理中': 'status-processing',
+        '已发货': 'status-shipped',
+        '已完成': 'status-completed',
+        '已取消': 'status-cancelled',
+        '退货中': 'status-return'
       }
       return classes[status] || ''
     },
 
     getStatusText(status) {
-      const texts = {
-        pending: '待处理',
-        processing: '处理中',
-        shipped: '已发货',
-        delivered: '已送达',
-        cancelled: '已取消'
+      return status || '未知状态'
+    },
+
+    async viewOrder(order) {
+      try {
+        const response = await orderApi.getById(order.order_id)
+        console.log('订单详情:', response)
+        alert(`订单详情：\n订单号：${response.order_id}\n状态：${this.getStatusText(response.status)}\n货主：${response.Shipper?.shipper_name || '未知'}`)
+      } catch (error) {
+        console.error('获取订单详情失败:', error)
+        alert('获取订单详情失败')
       }
-      return texts[status] || status
     },
 
-    viewOrder(order) {
-      console.log('查看订单:', order)
+    async processOrder(order) {
+      try {
+        await orderApi.updateStatus(order.order_id, { status: '处理中' })
+        alert('订单已开始处理')
+        this.loadOrders()
+      } catch (error) {
+        console.error('处理订单失败:', error)
+        alert('处理订单失败')
+      }
     },
 
-    processOrder(order) {
-      console.log('处理订单:', order)
-    },
-
-    shipOrder(order) {
-      console.log('发货订单:', order)
+    async shipOrder(order) {
+      try {
+        await orderApi.updateStatus(order.order_id, { status: '已发货' })
+        alert('订单已发货')
+        this.loadOrders()
+      } catch (error) {
+        console.error('发货失败:', error)
+        alert('发货失败')
+      }
     },
 
     prevPage() {
       if (this.currentPage > 1) {
         this.currentPage--
+        this.loadOrders()
       }
     },
 
     nextPage() {
       if (this.currentPage < this.totalPages) {
         this.currentPage++
+        this.loadOrders()
       }
+    }
+  },
+
+  async mounted() {
+    await this.loadOrders()
+  },
+
+  watch: {
+    searchQuery() {
+      this.currentPage = 1
+      this.loadOrders()
+    },
+    statusFilter() {
+      this.currentPage = 1
+      this.loadOrders()
     }
   }
 }
@@ -306,44 +324,6 @@ export default {
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
-}
-
-.filter-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #0070f3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.filter-icon {
-  width: 16px;
-  height: 16px;
-  position: relative;
-}
-
-.filter-icon::before {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 2px;
-  background: currentColor;
-  top: 4px;
-  left: 0;
-}
-
-.filter-icon::after {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 2px;
-  background: currentColor;
-  top: 10px;
-  left: 0;
 }
 
 .order-table {

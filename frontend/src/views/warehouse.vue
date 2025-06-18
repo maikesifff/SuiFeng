@@ -23,9 +23,8 @@
           <div class="filter-label">状态</div>
           <select v-model="statusFilter" class="filter-select">
             <option value="">全部状态</option>
-            <option value="normal">正常</option>
-            <option value="maintenance">维护中</option>
-            <option value="closed">已关闭</option>
+            <option value="1">正常</option>
+            <option value="0">已关闭</option>
           </select>
         </div>
         <button class="add-button" @click="showAddModal = true">
@@ -37,30 +36,30 @@
 
     <div class="warehouse-grid">
       <div v-for="warehouse in filteredWarehouses" 
-           :key="warehouse.id" 
+           :key="warehouse.warehouse_id" 
            class="warehouse-card">
         <div class="card-header">
-          <div class="card-title">{{ warehouse.name }}</div>
-          <div class="status-badge" :class="warehouse.status">
+          <div class="card-title">{{ warehouse.warehouse_name }}</div>
+          <div class="status-badge" :class="getStatusClass(warehouse.status)">
             {{ getStatusText(warehouse.status) }}
           </div>
         </div>
         <div class="card-content">
           <div class="info-row">
             <div class="info-label">地址</div>
-            <div class="info-value">{{ warehouse.address }}</div>
+            <div class="info-value">{{ warehouse.location }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label">管理员</div>
-            <div class="info-value">{{ warehouse.manager }}</div>
+            <div class="info-label">联系人</div>
+            <div class="info-value">{{ warehouse.manager_name }}</div>
           </div>
           <div class="info-row">
             <div class="info-label">联系电话</div>
-            <div class="info-value">{{ warehouse.phone }}</div>
+            <div class="info-value">{{ warehouse.contact_phone }}</div>
           </div>
           <div class="info-row">
-            <div class="info-label">库存数量</div>
-            <div class="info-value">{{ warehouse.inventoryCount }}</div>
+            <div class="info-label">容量</div>
+            <div class="info-value">{{ warehouse.capacity }}</div>
           </div>
         </div>
         <div class="card-actions">
@@ -85,32 +84,42 @@
         <form @submit.prevent="handleSubmit" class="modal-form">
           <div class="form-group">
             <div class="form-label">仓库名称</div>
-            <input type="text" v-model="formData.name" class="form-input" required>
+            <input type="text" v-model="formData.warehouse_name" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <div class="form-label">仓库编码</div>
+            <input type="text" v-model="formData.warehouse_code" class="form-input" required>
           </div>
           <div class="form-group">
             <div class="form-label">地址</div>
-            <input type="text" v-model="formData.address" class="form-input" required>
+            <input type="text" v-model="formData.location" class="form-input" required>
           </div>
           <div class="form-group">
             <div class="form-label">管理员</div>
-            <select v-model="formData.managerId" class="form-select" required>
-              <option v-for="manager in managers" 
-                      :key="manager.id" 
-                      :value="manager.id">
-                {{ manager.name }}
+            <select v-model="formData.manager_id" @change="onManagerChange" class="form-select" required>
+              <option value="">请选择管理员</option>
+              <option v-for="manager in managers" :key="manager.employee_id" :value="manager.employee_id">
+                {{ manager.name }} ({{ manager.department_name }})
               </option>
             </select>
           </div>
           <div class="form-group">
+            <div class="form-label">联系人</div>
+            <input type="text" v-model="formData.manager_name" class="form-input" required readonly>
+          </div>
+          <div class="form-group">
             <div class="form-label">联系电话</div>
-            <input type="tel" v-model="formData.phone" class="form-input" required>
+            <input type="tel" v-model="formData.contact_phone" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <div class="form-label">容量</div>
+            <input type="number" v-model="formData.capacity" class="form-input" required>
           </div>
           <div class="form-group">
             <div class="form-label">状态</div>
             <select v-model="formData.status" class="form-select" required>
-              <option value="normal">正常</option>
-              <option value="maintenance">维护中</option>
-              <option value="closed">已关闭</option>
+              <option value="1">正常</option>
+              <option value="0">已关闭</option>
             </select>
           </div>
           <div class="form-actions">
@@ -124,83 +133,100 @@
 </template>
 
 <script>
+import { warehouseApi } from '@/api'
+import { permission } from '@/utils/permission'
+
 export default {
   name: 'WarehouseView',
   
   data() {
     return {
+      loading: false,
+      submitting: false,
       searchQuery: '',
       statusFilter: '',
+      warehouses: [],
+      managers: [],
       showAddModal: false,
       editingWarehouse: null,
       formData: {
-        name: '',
-        address: '',
-        managerId: '',
-        phone: '',
-        status: 'normal'
+        warehouse_name: '',
+        warehouse_code: '',
+        location: '',
+        manager_id: '',
+        manager_name: '',
+        contact_phone: '',
+        capacity: '',
+        status: 1
       },
-      warehouses: [
-        {
-          id: 1,
-          name: '上海中心仓',
-          address: '上海市浦东新区物流园区1号',
-          manager: '张伟',
-          phone: '021-12345678',
-          status: 'normal',
-          inventoryCount: 450
-        },
-        {
-          id: 2,
-          name: '北京分仓',
-          address: '北京市大兴区物流基地A座',
-          manager: '郑浩',
-          phone: '010-87654321',
-          status: 'normal',
-          inventoryCount: 380
-        },
-        {
-          id: 3,
-          name: '广州冷链仓',
-          address: '广州市白云区冷链物流中心3号楼',
-          manager: '李娜',
-          phone: '020-33445566',
-          status: 'maintenance',
-          inventoryCount: 220
-        }
-      ],
-      managers: [
-        { id: 1, name: '张伟' },
-        { id: 2, name: '李娜' },
-        { id: 3, name: '王刚' },
-        { id: 4, name: '赵敏' }
-      ]
+      formErrors: {}
     }
   },
 
   computed: {
     filteredWarehouses() {
       return this.warehouses.filter(warehouse => {
-        const matchesSearch = 
-          warehouse.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          warehouse.address.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          warehouse.manager.toLowerCase().includes(this.searchQuery.toLowerCase())
+        const matchesSearch = !this.searchQuery || 
+          warehouse.warehouse_name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          warehouse.location.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          (warehouse.manager_name && warehouse.manager_name.toLowerCase().includes(this.searchQuery.toLowerCase()))
         
-        const matchesStatus = !this.statusFilter || warehouse.status === this.statusFilter
+        const matchesStatus = !this.statusFilter || warehouse.status.toString() === this.statusFilter
         
         return matchesSearch && matchesStatus
       })
     }
   },
 
+  async mounted() {
+    // 检查权限，如果没有仓库管理权限就跳转到产品页面
+    if (!permission.canManageWarehouses()) {
+      alert('您没有权限访问仓库管理页面');
+      this.$router.push('/product');
+      return;
+    }
+    
+    await this.loadWarehouses()
+    await this.loadManagers()
+  },
+
   methods: {
-    getStatusText(status) {
-      const statusMap = {
-        normal: '正常',
-        maintenance: '维护中',
-        closed: '已关闭'
+    async loadWarehouses() {
+      this.loading = true
+      try {
+        const response = await warehouseApi.getList({ pageSize: 100 })
+        this.warehouses = response.list || []
+      } catch (error) {
+        console.error('加载仓库列表失败:', error)
+        alert('加载仓库列表失败')
+      } finally {
+        this.loading = false
       }
-      return statusMap[status] || status
+    },
+
+    async loadManagers() {
+      try {
+        const response = await warehouseApi.getManagers()
+        this.managers = response || []
+      } catch (error) {
+        console.error('加载管理员列表失败:', error)
+      }
+    },
+
+    getStatusClass(status) {
+      const classes = {
+        1: 'active',
+        0: 'closed'
+      }
+      return classes[status] || 'closed'
+    },
+
+    getStatusText(status) {
+      const texts = {
+        1: '正常',
+        0: '已关闭'
+      }
+      return texts[status] || '未知'
     },
 
     editWarehouse(warehouse) {
@@ -209,9 +235,18 @@ export default {
       this.showAddModal = true
     },
 
-    deleteWarehouse(warehouse) {
-      if (confirm('确定要删除该仓库吗？')) {
-        console.log('删除仓库:', warehouse)
+    async deleteWarehouse(warehouse) {
+      if (!confirm(`确定要删除仓库"${warehouse.warehouse_name}"吗？`)) {
+        return
+      }
+      
+      try {
+        await warehouseApi.delete(warehouse.warehouse_id)
+        alert('仓库删除成功')
+        await this.loadWarehouses()
+      } catch (error) {
+        console.error('删除仓库失败:', error)
+        alert('删除仓库失败')
       }
     },
 
@@ -219,21 +254,44 @@ export default {
       this.showAddModal = false
       this.editingWarehouse = null
       this.formData = {
-        name: '',
-        address: '',
-        managerId: '',
-        phone: '',
-        status: 'normal'
+        warehouse_name: '',
+        warehouse_code: '',
+        location: '',
+        manager_id: '',
+        manager_name: '',
+        contact_phone: '',
+        capacity: '',
+        status: 1
       }
     },
 
-    handleSubmit() {
-      if (this.editingWarehouse) {
-        console.log('更新仓库:', this.formData)
-      } else {
-        console.log('新增仓库:', this.formData)
+    async handleSubmit() {
+      this.submitting = true
+      try {
+        if (this.editingWarehouse) {
+          await warehouseApi.update(this.editingWarehouse.warehouse_id, this.formData)
+          alert('仓库更新成功')
+        } else {
+          await warehouseApi.create(this.formData)
+          alert('仓库创建成功')
+        }
+        
+        this.closeModal()
+        await this.loadWarehouses()
+      } catch (error) {
+        console.error('保存仓库失败:', error)
+        alert('保存仓库失败')
+      } finally {
+        this.submitting = false
       }
-      this.closeModal()
+    },
+
+    onManagerChange() {
+      const selectedManager = this.managers.find(m => m.employee_id == this.formData.manager_id)
+      if (selectedManager) {
+        this.formData.manager_name = selectedManager.name
+        this.formData.contact_phone = selectedManager.phone || ''
+      }
     }
   }
 }
@@ -404,14 +462,9 @@ export default {
   font-size: 12px;
 }
 
-.status-badge.normal {
+.status-badge.active {
   background: #e6ffe6;
   color: #00a854;
-}
-
-.status-badge.maintenance {
-  background: #fff3e6;
-  color: #fa8c16;
 }
 
 .status-badge.closed {

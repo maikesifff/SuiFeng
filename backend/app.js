@@ -5,29 +5,28 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
-const { requestLogger, errorLogger } = require('./utils/logger');
-const { error: errorResponse } = require('./utils/response');
-const { AppError } = require('./utils/error');
+
+const { sequelize } = require('./config/database');
+const { requestLogger, errorHandler } = require('./middleware/error');
+const logger = require('./utils/logger');
 
 // 路由导入
 const indexRouter = require('./routes/index');
-const usersRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
+const usersRouter = require('./routes/users');
 const productRouter = require('./routes/product');
-const orderRouter = require('./routes/order');
-const inventoryRouter = require('./routes/inventory');
 const warehouseRouter = require('./routes/warehouse');
 const supplierRouter = require('./routes/supplier');
+const inventoryRouter = require('./routes/inventory');
+const orderRouter = require('./routes/order');
 const transportRouter = require('./routes/transport');
 
 const app = express();
 
 // CORS 配置
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:8080'], // 允许多个前端域名
-  credentials: true, // 允许携带凭证
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // 允许的请求方法
-  allowedHeaders: ['Content-Type', 'Authorization'] // 允许的请求头
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true
 }));
 
 // 基础中间件
@@ -39,32 +38,61 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 请求日志中间件
 app.use(requestLogger);
 
-// API 路由
-const API_PREFIX = process.env.API_PREFIX || '/api/v1';
-app.use(API_PREFIX, indexRouter);
-app.use(`${API_PREFIX}/users`, usersRouter);
-app.use(`${API_PREFIX}/auth`, authRouter);
-app.use(`${API_PREFIX}/products`, productRouter);
-app.use(`${API_PREFIX}/orders`, orderRouter);
-app.use(`${API_PREFIX}/inventory`, inventoryRouter);
-app.use(`${API_PREFIX}/warehouses`, warehouseRouter);
-app.use(`${API_PREFIX}/suppliers`, supplierRouter);
-app.use(`${API_PREFIX}/transport`, transportRouter);
+// 路由配置
+app.use('/', indexRouter);
+app.use('/auth', authRouter);
+app.use('/users', usersRouter);
+app.use('/product', productRouter);
+app.use('/warehouse', warehouseRouter);
+app.use('/supplier', supplierRouter);
+app.use('/inventory', inventoryRouter);
+app.use('/order', orderRouter);
+app.use('/transport', transportRouter);
 
 // 404 处理
 app.use((req, res, next) => {
-  next(new AppError('接口不存在', 404));
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  error.status = 404;
+  next(error);
 });
 
-// 错误日志中间件
-app.use(errorLogger);
-
-// 错误处理中间件
+// 全局错误处理
 app.use((err, req, res, next) => {
-  console.error('Error details:', JSON.stringify(err, null, 2));
-  const statusCode = err.code || 500;
-  const message = err.message || '服务器内部错误';
-  errorResponse(res, message, statusCode);
+  logger.error('Application error', {
+    message: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+    body: req.body,
+    query: req.query,
+    params: req.params
+  });
+
+  const status = err.status || 500;
+  const message = process.env.NODE_ENV === 'production' && status === 500 
+    ? 'Internal Server Error' 
+    : err.message;
+
+  res.status(status).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  });
 });
+
+// 数据库连接测试
+sequelize.authenticate()
+  .then(() => {
+    logger.success('Database connection established successfully');
+  })
+  .catch(err => {
+    logger.error('Unable to connect to the database', {
+      error: err.message,
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME
+    });
+  });
 
 module.exports = app;
