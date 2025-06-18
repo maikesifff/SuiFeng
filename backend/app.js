@@ -13,6 +13,12 @@ const { AppError } = require('./utils/error');
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
+const productRouter = require('./routes/product');
+const orderRouter = require('./routes/order');
+const inventoryRouter = require('./routes/inventory');
+const warehouseRouter = require('./routes/warehouse');
+const supplierRouter = require('./routes/supplier');
+const transportRouter = require('./routes/transport');
 
 const app = express();
 
@@ -38,6 +44,12 @@ const API_PREFIX = process.env.API_PREFIX || '/api/v1';
 app.use(API_PREFIX, indexRouter);
 app.use(`${API_PREFIX}/users`, usersRouter);
 app.use(`${API_PREFIX}/auth`, authRouter);
+app.use(`${API_PREFIX}/products`, productRouter);
+app.use(`${API_PREFIX}/orders`, orderRouter);
+app.use(`${API_PREFIX}/inventory`, inventoryRouter);
+app.use(`${API_PREFIX}/warehouses`, warehouseRouter);
+app.use(`${API_PREFIX}/suppliers`, supplierRouter);
+app.use(`${API_PREFIX}/transport`, transportRouter);
 
 // 404 处理
 app.use((req, res, next) => {
