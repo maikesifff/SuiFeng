@@ -2,7 +2,7 @@
   <header class="app-header">
     <div class="header-container">
       <div class="logo">
-        <h1>随风智能仓储管理系统</h1>
+        <h1>随风仓储管理系统</h1>
       </div>
       <nav class="nav-menu">
         <router-link to="/product" class="nav-item" active-class="active">

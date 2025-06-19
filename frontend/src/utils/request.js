@@ -1,9 +1,25 @@
 import axios from 'axios';
 import { setupInterceptors } from './interceptors';
 
+// 获取当前环境的API地址
+const getBaseURL = () => {
+  // 在浏览器环境中，获取当前页面的协议和主机
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    // 如果是localhost或127.0.0.1，保持原样，否则使用当前主机IP
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3000';
+    } else {
+      return `${protocol}//${hostname}:3000`;
+    }
+  }
+  // 如果不是浏览器环境，使用默认值
+  return 'http://localhost:3000';
+};
+
 // 创建 axios 实例
 const service = axios.create({
-  baseURL: 'http://localhost:3000', // 移除API前缀，直接使用后端基础URL
+  baseURL: getBaseURL(), // 动态获取API基础URL
   timeout: 15000, // 请求超时时间，毫秒
   headers: {
     'Content-Type': 'application/json;charset=utf-8'

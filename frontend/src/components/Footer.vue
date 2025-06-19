@@ -4,10 +4,10 @@
       <div class="footer-info">
         <div class="footer-logo">
           <div class="icon-cube"></div>
-          <span>随风智能仓储</span>
+          <span>随风仓储</span>
         </div>
         <div class="footer-copyright">
-          © 2025 随风网吧. 智能仓储高效管理平台 版权所有
+          © 2025 随风网吧. 仓储高效管理平台 版权所有
         </div>
       </div>
       
@@ -55,7 +55,7 @@ export default {
 意见反馈：feedback@suifeng.com
 
 我们会在24小时内回复您的邮件
-感谢您使用随风智能仓储管理系统！`)
+感谢您使用随风仓储管理系统！`)
     },
     
     showHelp() {

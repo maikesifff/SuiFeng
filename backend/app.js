@@ -25,7 +25,19 @@ const app = express();
 
 // CORS 配置
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: function (origin, callback) {
+    // 允许来自任何本地网络的请求（开发环境）
+    if (!origin || 
+        origin.startsWith('http://localhost') || 
+        origin.startsWith('http://127.0.0.1') ||
+        origin.match(/^http:\/\/192\.168\.\d{1,3}\.\d{1,3}/) ||
+        origin.match(/^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}/) ||
+        origin.match(/^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}/)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
