@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="title-box">
-      <div class="main-title">随风智能仓储高效管理平台</div>
+      <div class="main-title">随风仓储高效管理平台</div>
       <div class="sub-title">统一身份认证系统 - 根据账号权限自动分配访问级别</div>
     </div>
     
